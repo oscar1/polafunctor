@@ -1,0 +1,5 @@
+The PolaFunctor library is a simple template library for using functors as basic decomposable tokens of authority. You could say these functors are a bit like object capabilities, but given that C++ is not a capability safe language, or even a memory safe language, they should be viewed as pseudo capabilities. The usage of pseudo capabilities as such in C++ programs allows C++ users to experiment with capability style programming and design patterns and can greatly help to improve the integrity quality of large software projects. It does however in no way claim to provide the hostile code protection that object capabilities do, and thus is only suitable for controled software development environments in conjunction with code reviews and coding standards.
+
+Warning: This library makes use of variadic templates. Variadic templates are a powerfull new feature of c++0x. This makes however that this library can only work if you enable the c++0x in your compiler.
+
+ 
