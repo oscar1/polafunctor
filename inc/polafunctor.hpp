@@ -54,7 +54,7 @@ namespace polacanthus {
   class generator: public functor<R> {};  
  
   //A few proxies
-/*
+
   template <class R, typename ... Args>
   class statefull_proxy: public functor<R,Args...> {
      functor<R,Args...> &mRaw;
@@ -62,9 +62,9 @@ namespace polacanthus {
      R mDefault;
    public:
      statefull_proxy(functor<R,Args...> &raw,generator<bool> &gen,R dfl):mRaw(raw),mGenerator(gen),mDefault(dfl){}
-     R operator()(Args...) {
+     R operator()(Args...args) {
          if (mGenerator()) {
-            return mRaw(Args ...);
+            return mRaw(args...);
 	 } else {
             return mDefault;
 	 }
@@ -77,8 +77,8 @@ namespace polacanthus {
       F mVal;
     private: 
       setfirst_proxy(functor<R,F,Args...> &raw,F &val): mRaw(raw),mVal(val){}
-      R operator()(Args...) {
-         return mRaw(mVal,Args...);
+      R operator()(Args...args) {
+         return mRaw(mVal,args...);
       }
   };
 
@@ -86,23 +86,22 @@ namespace polacanthus {
   class rotleft_proxy: public functor<R,Args...,F> {
       functor<R,F,Args...> &mRaw;
     public:
-      rotright_proxy(functor<R,F,Args...> &raw):mRaw(raw){}
-      R operator()(F first, Args...) {
-        return(Args...,first);
+      rotleft_proxy(functor<R,F,Args...> &raw):mRaw(raw){}
+      R operator()(F first, Args...args) {
+        return  mRaw(args...,first);
       }
   };
 
-  template <class R, class F, typename ... Args>
+  template <class R, class F, typename ...Args>
   class filterfirst_proxy: public functor<R,F,Args...> {
      functor<R,F,Args...> &mRaw;
-     functor<F,F> &mFilter;
+     filter<F> &mFilter;
    public:
-     filterfirst_proxy(functor<R,F,Args...> &raw,functor<F,F> &filter):mRaw(raw),mFilter(filter){}
-     R operator()(F first,Args...) {
-        return mRaw(mFilter(first),Args...);
+     filterfirst_proxy(functor<R,F,Args...> &raw,filter<F> &filter):mRaw(raw),mFilter(filter){}
+     R operator()(F first,Args... args) {
+        return mRaw(mFilter(first),args...);
      }
   }; 
-*/
   //Some simple functors with standard behaviour
   template <class R, typename ... Args>
   class nullfunctor: public functor<R,Args...> {
