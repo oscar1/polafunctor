@@ -2,7 +2,6 @@
 #define _POLACAST_HPP
 #include <stdexcept>
 #include <string>
-#include <iostream>
 namespace polacanthus {
   //Exceptions thrown by this library
   class functor_exception : public std::runtime_error {
@@ -189,7 +188,7 @@ namespace polacanthus {
   class const_generator: public generator<T> {
        T mConst;
      public:
-       const_generator(T &val):mConst(val){}
+       const_generator(T val):mConst(val){}
        T operator()() { return mConst;}
   }; 
 
@@ -211,7 +210,7 @@ namespace polacanthus {
   class revokable: public generator<bool> {
       bool mRevoked;
     public:
-      revokable(std::string msg):mRevoked(false){}
+      revokable():mRevoked(false){}
       void revoke(){mRevoked=true;}
       bool operator()(){
         if (mRevoked) {

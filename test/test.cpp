@@ -60,8 +60,18 @@ int main(int argc,char **argv) {
   std::cerr << maskfilt(11) << std::endl;
   polacanthus::nullfilter<int> nullfilt;
   std::cerr << nullfilt(98765) << std::endl;
-  //equalassertfilter
-  //rangeassertfilter
-  //const_generator
+  polacanthus::equalassertfilter<int> seven(7,"that is no seven");
+  std::cerr << seven(7) << std::endl;
+  //std::cerr << seven(11) << std::endl;
+  polacanthus::rangeassertfilter<int> grade(1,10,"not a valid grade");
+  std::cerr << grade(9) << std::endl;
+  //std::cerr << grade(11) << std::endl;
+  polacanthus::const_generator<bool> trueish(true);
+  std::cerr << trueish() << std::endl;
   //revokable
+  polacanthus::revokable rev;
+  std::cerr << "rev: " << rev() << std::endl;
+  std::cerr << "rev: " << rev() << std::endl;
+  rev.revoke();
+  std::cerr << "rev: " << rev() << std::endl;
 }
