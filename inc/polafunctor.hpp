@@ -8,10 +8,6 @@ namespace polacanthus {
     public:
       functor_exception(std::string msg) : std::runtime_error(msg) {}
   };
-  class throwfunctor_exception : public functor_exception {
-    public: 
-      throwfunctor_exception(std::string msg) : functor_exception(msg){}
-  };
   class assertfilter_exception : public functor_exception {
     public:
       assertfilter_exception(std::string msg) : functor_exception(msg){}
@@ -23,22 +19,6 @@ namespace polacanthus {
   class range_assertfilter_exception : public assertfilter_exception {
     public:
       range_assertfilter_exception(std::string msg) : assertfilter_exception(msg){}
-  };
-  class assert_exception : public functor_exception {
-    public:
-      assert_exception(std::string msg) : functor_exception(msg){}
-  };
-  class quota_assert_exception : public assert_exception {
-    public:
-      quota_assert_exception(std::string msg) : assert_exception(msg){}
-  };
-  class revocation_assert_exception : public assert_exception {
-    public:
-      revocation_assert_exception(std::string msg) : assert_exception(msg){}
-  };
-  class invert_assertfilter_exception : public assert_exception {
-    public:
-      invert_assertfilter_exception(std::string msg) : assert_exception(msg){}
   };
   //A few base classes
   template <class R, typename ... Args>
@@ -54,6 +34,17 @@ namespace polacanthus {
   class generator: public functor<R> {};  
  
   //A few proxies
+
+  template <class R, typename ... Args>
+  class void_proxy: public functor<void,Args...> {
+      functor<R,Args...> &mRaw;
+    public:
+      void_proxy(functor<R,Args...> &raw):mRaw(raw){}
+      void operator()(Args...args) {
+         mRaw(args...);
+	 return;
+      }
+  };
 
   template <class R, typename ... Args>
   class statefull_proxy: public functor<R,Args...> {
@@ -72,15 +63,27 @@ namespace polacanthus {
   };
 
   template <class R, class F, typename ... Args>
-  class setfirst_proxy: public functor<R,Args...> {
+  class const_setfirst_proxy: public functor<R,Args...> {
       functor<R,F,Args...> &mRaw;
       F mVal;
-    private: 
-      setfirst_proxy(functor<R,F,Args...> &raw,F &val): mRaw(raw),mVal(val){}
+    public: 
+      const_setfirst_proxy(functor<R,F,Args...> &raw,F &val): mRaw(raw),mVal(val){}
       R operator()(Args...args) {
          return mRaw(mVal,args...);
       }
   };
+
+  template <class R, class F, typename ... Args>
+  class statefull_setfirst_proxy: public functor<R,Args...> {
+      functor<R,F,Args...> &mRaw;
+      generator<F> &mGenerator;
+    public:
+      statefull_setfirst_proxy(functor<R,F,Args...> &raw,generator<F> &generator): mRaw(raw),mGenerator(generator){}
+      R operator()(Args...args) {
+         return mRaw(mGenerator(),args...);
+      }
+  };
+
 
   template <class R, class F, typename ... Args>
   class rotleft_proxy: public functor<R,Args...,F> {
@@ -104,22 +107,12 @@ namespace polacanthus {
   }; 
   //Some simple functors with standard behaviour
   template <class R, typename ... Args>
-  class nullfunctor: public functor<R,Args...> {
+  class constfunctor: public functor<R,Args...> {
         R mRval;
       public:
-        nullfunctor(R val):mRval(val){}
+        constfunctor(R val):mRval(val){}
         R operator()(Args...) {
           return mRval;
-        }
-  };
-
-  template <class R, typename ... Args>
-  class throwfunctor: public functor<R,Args...> {
-        std::string mMsg;
-      public:
-        throwfunctor(std::string msg):mMsg(msg){}
-        R operator()(Args...) {
-          throw throwfunctor_exception(mMsg);
         }
   };
 
@@ -189,32 +182,15 @@ namespace polacanthus {
         }
   };
 
-  template <class T>
-  class invertassertfilter: public filter<T> {
-        functor<T,T>   &mTarget;
-        std::string mMsg;
-     public:
-        invertassertfilter(filter<T> &target,std::string msg):mTarget(target),mMsg(msg){}
-        T operator()(T arg){
-           try {
-              mTarget(arg);
-           } catch (assertfilter_exception &e) {
-              return arg;
-           }
-           throw invert_assertfilter_exception(mMsg);
-        }
-  };
-
   //Some standard behaviour generators
-  class true_generator: public generator<bool> {
-    public:
-      bool operator()(){return true;}
-  };
 
-  class false_generator: public generator<bool> {
-    public:
-      bool operator()(){return false;}
-  };
+  template <class T>
+  class const_generator: public generator<T> {
+       T mConst;
+     public:
+       const_generator(T &val):mConst(val){}
+       T operator()() { return mConst;}
+  }; 
 
   class quota: public generator<bool> {
       size_t mMax;
@@ -241,19 +217,6 @@ namespace polacanthus {
 		return false;
 	}
         return true;
-      }
-  };
-
-  class throw_on_false: public generator<bool> {
-      generator<bool> &mRawGen;
-      std::string mMsg;
-    public:
-      throw_on_false(generator<bool> &rawgen,std::string msgonfail): mRawGen(rawgen),mMsg(msgonfail){}
-      bool operator()(){
-          if (mRawGen()) {
-             return true;
-	  }
-	  throw revocation_assert_exception(mMsg);
       }
   };
 
