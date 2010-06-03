@@ -2,6 +2,7 @@
 #define _POLACAST_HPP
 #include <stdexcept>
 #include <string>
+#include <iostream>
 namespace polacanthus {
   //Exceptions thrown by this library
   class functor_exception : public std::runtime_error {
