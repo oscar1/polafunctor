@@ -85,17 +85,17 @@ namespace polacanthus {
       }
   };
 
-
+/*
   template <class R, class F, typename ... Args>
   class rotleft_proxy: public functor<R,Args...,F> {
       functor<R,F,Args...> &mRaw;
     public:
       rotleft_proxy(functor<R,F,Args...> &raw):mRaw(raw){}
-      R operator()(F first, Args...args) {
-        return  mRaw(args...,first);
+      R operator()(Args...args, F first) {
+        return  mRaw(first,args...);
       }
   };
-
+*/
   template <class R, class F, typename ...Args>
   class filterfirst_proxy: public functor<R,F,Args...> {
      functor<R,F,Args...> &mRaw;

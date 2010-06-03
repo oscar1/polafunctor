@@ -45,5 +45,23 @@ int main(int argc,char **argv) {
   myfoo.doit(bla4);
   MySequence sequence;
   polacanthus::statefull_setfirst_proxy<int,int,std::string> bla5(bla1,sequence);
-  
+  bla5("dikkerdje");
+  bla5("dap");
+  bla5("zat");
+  bla5("op");
+  bla5("de");
+  bla5("trap");
+  polacanthus::constfunctor<double,double> pi2(3.1415927);
+  double p3= pi2(1.2345);
+  std::cerr << p3 << std::endl;
+  polacanthus::constfilter<int> test1(31);
+  std::cerr << test1(18) << std::endl;
+  polacanthus::maskfilter<int> maskfilt(7);
+  std::cerr << maskfilt(11) << std::endl;
+  polacanthus::nullfilter<int> nullfilt;
+  std::cerr << nullfilt(98765) << std::endl;
+  //equalassertfilter
+  //rangeassertfilter
+  //const_generator
+  //revokable
 }
