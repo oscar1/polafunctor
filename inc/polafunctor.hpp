@@ -1,14 +1,12 @@
-#ifndef _POLACAST_HPP
-#define _POLACAST_HPP
+#ifndef _POLAFUNCTOR_HPP
+#define _POLAFUNCTOR_HPP
 #include <stdexcept>
 #include <string>
-namespace polacanthus {
-  //Exceptions thrown by this library
+namespace polafunctor {
   class failed_condition: public std::runtime_error {
     public:
       failed_condition(std::string msg) : std::runtime_error(msg) {}
-  }
-
+  };
   class functor_exception : public std::runtime_error {
     public:
       functor_exception(std::string msg) : std::runtime_error(msg) {}
@@ -25,12 +23,12 @@ namespace polacanthus {
     public:
       range_assert_filter_exception(std::string msg) : assert_filter_exception(msg){}
   };
-  
   //The base abstract functor class template.
   template <typename R, typename ... Args>
   class functor {
      public:
         virtual R operator()(Args...)=0;
+        virtual ~functor(){}
   };  
   //Sinks are shorthand for functors that return void.
   template <typename ... Args>
@@ -69,7 +67,7 @@ namespace polacanthus {
       void operator()(Args...args) {
          return mRedirect(mRaw(args...));
       }
-  }
+  };
   //A profile invokes an event before the actual raw functor gets invoked and an other event after invocation.
   template <typename R, typename ... Args>
   class profile: public functor<R,Args...> {
@@ -86,8 +84,8 @@ namespace polacanthus {
       }
   };
   //Specialized profile for void return type.
-  template <typename R=void, typename ... Args>
-  class profile: public functor<void,Args...> {
+  template <typename ... Args>
+  class profile<void,Args...> : public functor<void,Args...> {
       functor<void,Args...> &mRaw;
       event &mOnStart;
       event &mOnEnd;
@@ -117,13 +115,13 @@ namespace polacanthus {
      }
   };
   //The conditional_discard void special case has no default.
-  template <typename R=void, typename ... Args>
-  class conditional_discard: public functor<void,Args...> {
-     functor<R,Args...> &mRaw;
+  template <typename ... Args>
+  class conditional_discard<void,Args...>: public functor<void,Args...> {
+     functor<void,Args...> &mRaw;
      condition &mCondition;
    public:
-     conditional_discard(functor<R,Args...> &raw,condition &cond):mRaw(raw),mCondition(cond){}
-     R operator()(Args...args) {
+     conditional_discard(functor<void,Args...> &raw,condition &cond):mRaw(raw),mCondition(cond){}
+     void operator()(Args...args) {
          if (mCondition()) {
             return mRaw(args...);
          } else {
@@ -245,16 +243,6 @@ namespace polacanthus {
   };
 
   template <class T>
-  class const_source: public source<T> {
-       T       mVal;
-    public:
-       const_source(T val):mVal(val){}
-       T operator()() {
-          return mVal;
-       }
-  }
-
-  template <class T>
   class null_sink: public sink<T> {
      public:
         void operator()(T) {
@@ -302,7 +290,7 @@ namespace polacanthus {
      public:
         equal_assert_filter(T val,std::string msg):mVal(val),mMsg(msg){}
         T operator()(T arg){
-           if (!(arg== mVal)) throw equal_assertfilter_exception(mMsg);
+           if (!(arg== mVal)) throw equal_assert_filter_exception(mMsg);
            return arg;
         }
   };
