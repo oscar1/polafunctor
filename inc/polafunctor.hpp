@@ -4,151 +4,289 @@
 #include <string>
 namespace polacanthus {
   //Exceptions thrown by this library
+  class failed_condition: public std::runtime_error {
+    public:
+      failed_condition(std::string msg) : std::runtime_error(msg) {}
+  }
+
   class functor_exception : public std::runtime_error {
     public:
       functor_exception(std::string msg) : std::runtime_error(msg) {}
   };
-  class assertfilter_exception : public functor_exception {
+  class assert_filter_exception : public std::runtime_error {
     public:
-      assertfilter_exception(std::string msg) : functor_exception(msg){}
+      assert_filter_exception(std::string msg) : std::runtime_error(msg){}
   };
-  class equal_assertfilter_exception : public assertfilter_exception {
+  class equal_assert_filter_exception : public assert_filter_exception {
     public:
-      equal_assertfilter_exception(std::string msg) : assertfilter_exception(msg){}
+      equal_assert_filter_exception(std::string msg) : assert_filter_exception(msg){}
   };
-  class range_assertfilter_exception : public assertfilter_exception {
+  class range_assert_filter_exception : public assert_filter_exception {
     public:
-      range_assertfilter_exception(std::string msg) : assertfilter_exception(msg){}
+      range_assert_filter_exception(std::string msg) : assert_filter_exception(msg){}
   };
-  //A few base classes
-  template <class R, typename ... Args>
+  
+  //The base abstract functor class template.
+  template <typename R, typename ... Args>
   class functor {
      public:
         virtual R operator()(Args...)=0;
   };  
-
-  template <class R>
+  //Sinks are shorthand for functors that return void.
+  template <typename ... Args>
+  class sink: public functor<void,Args...> {};
+  //Sources are shorthand for zero argument functors that return a given type vallue.
+  template <typename R>
+  class source: public functor<R> {};
+  //Filters are shorthand for single argument functors that have a return type equal to the argument type.
+  template <typename R>
   class filter: public functor<R,R> {};
+  //Events are shorthand for zero argument functors that returen void.
+  class event: public functor<void> {};
+  //Conditions are shorthand for zero argument functors that returen booleans.
+  class condition: public functor<bool> {};
 
-  template <class R>
-  class generator: public functor<R> {};  
  
-  //A few proxies
-
-  template <class R, typename ... Args>
-  class void_proxy: public functor<void,Args...> {
+  //A discard_rval discards the return value without disclosing it to the caller.
+  template <typename R, typename ... Args>
+  class discard_rval: public functor<void,Args...> {
       functor<R,Args...> &mRaw;
     public:
-      void_proxy(functor<R,Args...> &raw):mRaw(raw){}
+      discard_rval(functor<R,Args...> &raw):mRaw(raw){}
       void operator()(Args...args) {
          mRaw(args...);
 	 return;
       }
   };
-
-  template <class R, typename ... Args>
-  class statefull_proxy: public functor<R,Args...> {
+  
+  //A redirect_rval redirects the return vallue to a redirection sink without disclosing the result to the caller.
+  template <typename R, typename ... Args>
+  class redirect_rval: public functor<void,Args...> {
+      functor<R,Args...> &mRaw;
+      sink<R> &mRedirect;
+     public:
+      redirect_rval(functor<R,Args...> &raw, sink<R> &redirect): mRaw(raw),mRedirect(redirect) {}
+      void operator()(Args...args) {
+         return mRedirect(mRaw(args...));
+      }
+  }
+  //A profile invokes an event before the actual raw functor gets invoked and an other event after invocation.
+  template <typename R, typename ... Args>
+  class profile: public functor<R,Args...> {
+      functor<R,Args...> &mRaw;
+      event &mOnStart;
+      event &mOnEnd;
+    public:
+      profile(functor<R,Args...> &raw,event &startevent,event &endevent): mRaw(raw),mOnStart(startevent),mOnEnd(endevent){}
+      R operator()(Args...args) {
+         mOnStart();
+         R rval=mRaw(args...);
+         mOnEnd();
+         return rval;
+      }
+  };
+  //Specialized profile for void return type.
+  template <typename R=void, typename ... Args>
+  class profile: public functor<void,Args...> {
+      functor<void,Args...> &mRaw;
+      event &mOnStart;
+      event &mOnEnd;
+    public:
+      profile(functor<void,Args...> &raw,event &startevent,event &endevent): mRaw(raw),mOnStart(startevent),mOnEnd(endevent){}
+      void operator()(Args...args) {
+         mOnStart();
+         mRaw(args...);
+         mOnEnd();
+         return;
+      }
+  };
+  //A conditional_discard will proxy when its condition returns true and will without proxying return a default value if the condition returns false. 
+  template <typename R, typename ... Args>
+  class conditional_discard: public functor<R,Args...> {
      functor<R,Args...> &mRaw;
-     generator<bool> &mGenerator;
+     condition &mCondition;
      R mDefault;
    public:
-     statefull_proxy(functor<R,Args...> &raw,generator<bool> &gen,R dfl):mRaw(raw),mGenerator(gen),mDefault(dfl){}
+     conditional_discard(functor<R,Args...> &raw,condition &cond,R dfl):mRaw(raw),mCondition(cond),mDefault(dfl){}
      R operator()(Args...args) {
-         if (mGenerator()) {
+         if (mCondition()) {
             return mRaw(args...);
 	 } else {
             return mDefault;
 	 }
      }
   };
+  //The conditional_discard void special case has no default.
+  template <typename R=void, typename ... Args>
+  class conditional_discard: public functor<void,Args...> {
+     functor<R,Args...> &mRaw;
+     condition &mCondition;
+   public:
+     conditional_discard(functor<R,Args...> &raw,condition &cond):mRaw(raw),mCondition(cond){}
+     R operator()(Args...args) {
+         if (mCondition()) {
+            return mRaw(args...);
+         } else {
+            return ;
+         }
+     }
+  };
+  //A conditional_throw will proxy when its condition returns true and will throw a failed_condition if the condition returns false.
+  template <typename R, typename ... Args>
+  class conditional_throw: public functor<R,Args...> {
+     functor<R,Args...> &mRaw;
+     condition &mCondition;
+     std::string mMsg;
+   public:
+     conditional_throw(functor<R,Args...> &raw,condition &cond,std::string failmsg):mRaw(raw),mCondition(cond),mMsg(failmsg){}
+     R operator()(Args...args) {
+         if (mCondition()) {
+            return mRaw(args...);
+         } else {
+            throw failed_condition(mMsg);
+         }
+     }
+  };
 
-  template <class R, class F, typename ... Args>
-  class const_setfirst_proxy: public functor<R,Args...> {
+  //A const_first_argument is a proxy that exposes all but the first functor argument. The first argument on proxying is set to a constant value.
+  template <typename R, typename F, typename ... Args>
+  class const_first_argument: public functor<R,Args...> {
       functor<R,F,Args...> &mRaw;
       F mVal;
     public: 
-      const_setfirst_proxy(functor<R,F,Args...> &raw,F &val): mRaw(raw),mVal(val){}
+      const_first_argument(functor<R,F,Args...> &raw,F &val): mRaw(raw),mVal(val){}
       R operator()(Args...args) {
          return mRaw(mVal,args...);
       }
   };
 
-  template <class R, class F, typename ... Args>
-  class statefull_setfirst_proxy: public functor<R,Args...> {
+  //An auto_first_argument is a proxy that exposes all but the first functor argument. The first argument on proxying is set by its source.
+  template <typename R, typename F, typename ... Args>
+  class auto_first_argument: public functor<R,Args...> {
       functor<R,F,Args...> &mRaw;
-      generator<F> &mGenerator;
+      source<F> &mSource;
     public:
-      statefull_setfirst_proxy(functor<R,F,Args...> &raw,generator<F> &generator): mRaw(raw),mGenerator(generator){}
+      auto_first_argument(functor<R,F,Args...> &raw,source<F> &src): mRaw(raw),mSource(src){}
       R operator()(Args...args) {
-         return mRaw(mGenerator(),args...);
+         return mRaw(mSource(),args...);
       }
   };
 
-/*
-  template <class R, class F, typename ... Args>
-  class rotleft_proxy: public functor<R,Args...,F> {
-      functor<R,F,Args...> &mRaw;
-    public:
-      rotleft_proxy(functor<R,F,Args...> &raw):mRaw(raw){}
-      R operator()(Args...args, F first) {
-        return  mRaw(first,args...);
+  //An redirected_extra_first_argument adds an extra discarded argument to a functor.
+  template <typename R, typename F, typename ... Args>
+  class discarded_first_argument: public functor<R,F,Args...> {
+      functor<R,Args...> &mRaw;
+     public:
+      discarded_first_argument(functor<R,Args...> &raw):mRaw(raw){}
+      R operator()(F &,Args...args) {
+          return mRaw(args...);
       }
   };
-*/
-  template <class R, class F, typename ...Args>
-  class filterfirst_proxy: public functor<R,F,Args...> {
+  
+  //A redirected_extra_first_argument adds an extra argument to a functor. This argument gets redirected to a sink.
+  template <typename R, typename F, typename ... Args>
+  class redirected_first_argument: public functor<R,F,Args...> {
+      functor<R,Args...> &mRaw;
+      sink<F> &mSink;
+     public:
+      redirected_first_argument(functor<R,Args...> &raw,sink<F> &snk):mRaw(raw),mSink(snk){}
+      R operator()(F &first,Args...args) {
+          mSink(first);
+          return mRaw(args...);
+      }
+  };
+
+  //An argument store is a (non thread safe) helper class that can be given to both an auto_first_argument and a corresponding redirected_first_argument. 
+  template <typename R>
+  class argumentstore: public source<R>,public sink<R> {
+       R mVal;
+     public:
+       argumentstore(R initial): mVal(initial){}
+       R operator()() {
+             return mVal;
+       }
+       void operator()(R arg){
+             mVal=arg;
+       }
+  };
+
+  //A filter_first_argument places a filter on the first argument of a functor.
+  template <typename R, typename F, typename ...Args>
+  class filter_first_argument: public functor<R,F,Args...> {
      functor<R,F,Args...> &mRaw;
      filter<F> &mFilter;
    public:
-     filterfirst_proxy(functor<R,F,Args...> &raw,filter<F> &filter):mRaw(raw),mFilter(filter){}
+     filter_first_argument(functor<R,F,Args...> &raw,filter<F> &filter):mRaw(raw),mFilter(filter){}
      R operator()(F first,Args... args) {
         return mRaw(mFilter(first),args...);
      }
   }; 
-  //Some simple functors with standard behaviour
+
+  //A const functor simply discards all its arguments and returns the same vallue each invocation.
   template <class R, typename ... Args>
-  class constfunctor: public functor<R,Args...> {
+  class const_functor: public functor<R,Args...> {
         R mRval;
       public:
-        constfunctor(R val):mRval(val){}
+        const_functor(R val):mRval(val){}
         R operator()(Args...) {
           return mRval;
         }
   };
 
-  //Some simple filter functors with standard behaviour.
+  //A constfilter is the filter variant of the constfunctor, it ignores the input and produces the same output every invocation.
   template <class T>
-  class constfilter: public filter<T> {
+  class const_filter: public filter<T> {
         T       mVal;
      public:
-        constfilter(T val):mVal(val){}
+        const_filter(T val):mVal(val){}
         T operator()(T){
            return mVal;
         }
   };
 
   template <class T>
-  class maskfilter: public filter<T> {
+  class const_source: public source<T> {
+       T       mVal;
+    public:
+       const_source(T val):mVal(val){}
+       T operator()() {
+          return mVal;
+       }
+  }
+
+  template <class T>
+  class null_sink: public sink<T> {
+     public:
+        void operator()(T) {
+           return;
+        };
+  };
+
+  //The maskfilter applies an '&' operation on the input and a mask.
+  template <class T>
+  class mask_filter: public filter<T> {
         T       mMask;
      public:
-        maskfilter(T val):mMask(val){}
+        mask_filter(T val):mMask(val){}
         T operator()(T arg){
            return (arg & mMask);
         }
   };
 
+  //The nullfilter simply returns its input without any filtering.
   template <class T>
-  class nullfilter: public filter<T> {
+  class null_filter: public filter<T> {
      public:
         T operator()(T arg){return arg;}
   };
 
+  //The rangefilter makes sure that the value fals within a given range and changes the vallue to min or max if it falls outside of the range.
   template <class T>
-  class rangefilter: public filter<T> {
+  class range_filter: public filter<T> {
         T       mMin;
         T       mMax;
      public:
-        rangefilter(T min,T max):mMin(min),mMax(max){}
+        range_filter(T min,T max):mMin(min),mMax(max){}
         T operator()(T arg){
            if (arg < mMin) return mMin;
            if (mMax < arg) return mMax;
@@ -156,43 +294,44 @@ namespace polacanthus {
         }
   };
 
+  //The equalassertfilter throws an exception if the input is unequal to its preset vallue.
   template <class T>
-  class equalassertfilter: public filter<T> {
+  class equal_assert_filter: public filter<T> {
         T       mVal;
         std::string mMsg;
      public:
-        equalassertfilter(T val,std::string msg):mVal(val),mMsg(msg){}
+        equal_assert_filter(T val,std::string msg):mVal(val),mMsg(msg){}
         T operator()(T arg){
            if (!(arg== mVal)) throw equal_assertfilter_exception(mMsg);
            return arg;
         }
   };
-
+  //The rangeassertfilter throws an exception if the input falls outdide a preset range.
   template <class T>
-  class rangeassertfilter: public filter<T> {
+  class range_assert_filter: public filter<T> {
         T       mMin;
         T       mMax;
         std::string mMsg;
      public:
-        rangeassertfilter(T min,T max,std::string msg):mMin(min),mMax(max),mMsg(msg){}
+        range_assert_filter(T min,T max,std::string msg):mMin(min),mMax(max),mMsg(msg){}
         T operator()(T arg){
            if ((arg < mMin) ||(mMax < arg))
-              throw range_assertfilter_exception(mMsg);
+              throw range_assert_filter_exception(mMsg);
            return arg;
         }
   };
 
-  //Some standard behaviour generators
-
+  //A const_source will return the same preset vallue each invocation.
   template <class T>
-  class const_generator: public generator<T> {
+  class const_source: public source<T> {
        T mConst;
      public:
-       const_generator(T val):mConst(val){}
+       const_source(T val):mConst(val){}
        T operator()() { return mConst;}
   }; 
 
-  class quota: public generator<bool> {
+  //A quota condition returns true on the first n invocations and false after the invocation quota has been excausted.
+  class quota: public condition {
       size_t mMax;
       size_t mCount;
       std::string mMsg;
@@ -207,7 +346,21 @@ namespace polacanthus {
       }
   }; 
 
-  class revokable: public generator<bool> {
+  class once: public condition {
+      bool mRevoked;
+     public:
+      once():mRevoked(false){}
+      bool operator()(){
+        if (mRevoked) {
+          return false;
+        }
+        mRevoked=true;
+        return true;
+      }
+   };
+
+  //A revokable will return true each invocation untill after its revoke method has been invoked.
+  class revokable: public condition {
       bool mRevoked;
     public:
       revokable():mRevoked(false){}
