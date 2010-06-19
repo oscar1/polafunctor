@@ -188,7 +188,7 @@ namespace polafunctor {
       sink<F> &mSink;
      public:
       redirected_first_argument(functor<R,Args...> &raw,sink<F> &snk):mRaw(raw),mSink(snk){}
-      R operator()(F &first,Args...args) {
+      R operator()(F first,Args...args) {
           mSink(first);
           return mRaw(args...);
       }
