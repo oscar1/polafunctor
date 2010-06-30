@@ -4,12 +4,12 @@
 namespace polafunctor {
   //A constfilter is the filter variant of the constfunctor, it ignores the input and produces the same output every invocation.
   template <class T>
-  class const_filter: public filter<T> {
-        T       mVal;
+  class source_filter: public filter<T> {
+        source<T> &mSource;
      public:
-        const_filter(T val):mVal(val){}
+        source_filter(source<T> &fsource):mSource(fsource){}
         T operator()(T){
-           return mVal;
+           return mSource();
         }
   };
 
@@ -45,32 +45,16 @@ namespace polafunctor {
         }
   };
 
-  //The equalassertfilter throws an exception if the input is unequal to its preset vallue.
-  //template <class T>
-  //class equal_assert_filter: public filter<T> {
-  //      T       mVal;
-  //      std::string mMsg;
-  //   public:
-  //      equal_assert_filter(T val,std::string msg):mVal(val),mMsg(msg){}
-  //      T operator()(T arg){
-  //         if (!(arg== mVal)) throw equal_assert_filter_exception(mMsg);
-  //         return arg;
-  //      }
-  //};
-  //The rangeassertfilter throws an exception if the input falls outdide a preset range.
-  //template <class T>
-  //class range_assert_filter: public filter<T> {
-  //      T       mMin;
-  //      T       mMax;
-  //      std::string mMsg;
-  //   public:
-  //      range_assert_filter(T min,T max,std::string msg):mMin(min),mMax(max),mMsg(msg){}
-  //      T operator()(T arg){
-  //         if ((arg < mMin) ||(mMax < arg))
-  //            throw range_assert_filter_exception(mMsg);
-  //         return arg;
-  //      }
-  //};
+  template <class T>
+  class tee_filter: public filter<T> {
+       sink<T> &mSink;
+     public:
+       tee_filter(sink<T> &teesink):mSink(teesink){}
+       T operator()(T arg){
+           mSink(arg);
+           return arg;
+       }
+  };
 
 }
 #endif

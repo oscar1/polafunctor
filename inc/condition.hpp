@@ -8,9 +8,8 @@ namespace polafunctor {
   class quota: public condition {
       size_t mMax;
       size_t mCount;
-      std::string mMsg;
     public:
-      quota(size_t maxinvoke,std::string msg):mMax(maxinvoke),mCount(0),mMsg(msg){}
+      quota(size_t maxinvoke):mMax(maxinvoke),mCount(0){}
       bool operator()(){
         if (mCount >= mMax) {
                return false;
@@ -20,17 +19,10 @@ namespace polafunctor {
       }
   }; 
 
-  class once: public condition {
-      bool mRevoked;
+  //once is shorthand for a quota of 1.
+  class once: public quota {
      public:
-      once():mRevoked(false){}
-      bool operator()(){
-        if (mRevoked) {
-          return false;
-        }
-        mRevoked=true;
-        return true;
-      }
+      once():quota(1){}
    };
 
   //A revokable will return true each invocation untill after its revoke method has been invoked.
@@ -47,5 +39,16 @@ namespace polafunctor {
       }
   };
 
+  class conditionstore: public condition, public sink<bool> {
+        bool mState;
+     public:
+        conditionstore(bool state):mState(state){}
+        bool operator()(){
+           return mState;
+        }
+        void operator()(bool newstate) {
+           mState=newstate;
+        }
+  };
 }
 #endif
