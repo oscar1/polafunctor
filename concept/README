@@ -1,0 +1,4 @@
+This directory is there only to explain how polacastify will work in the future.
+It shows an example of what type of template specializations the polacastify tool
+will be generating, and how these can be used.
+
