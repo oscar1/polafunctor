@@ -27,10 +27,22 @@ namespace polafunctor {
 
   //A revokable will return true each invocation untill after its revoke method has been invoked.
   class revokable: public functor<bool> {
+      class revokefunctor: public functor<void> {
+	   revokable *mRevokable;
+        public:
+	   revokefunctor(revokable *rev): mRevokable(rev){}
+	   void operator()(){
+              return mRevokable->revoke();
+	   }
+      };
       bool mRevoked;
+      revokefunctor mRFunctor;
     public:
-      revokable():mRevoked(false){}
+      revokable():mRevoked(false),mRFunctor(this){}
       void revoke(){mRevoked=true;}
+      functor<void> &getRevokeFunctor() {
+        return mRFunctor;
+      }
       bool operator()(){
         if (mRevoked) {
 		return false;
