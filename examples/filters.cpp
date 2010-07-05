@@ -29,7 +29,7 @@ class logger: public polafunctor::functor<int, std::string, int, std::string> {
      }
 };
 
-class namespacefilter: public polafunctor::filter<std::string> {
+class namespacefilter: public polafunctor::functor<std::string,std::string> {
     std::string mNamespace;
   public:
     namespacefilter(std::string filterns):mNamespace(filterns) {}

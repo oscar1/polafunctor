@@ -6,7 +6,7 @@
 namespace polafunctor {
 
   template <typename ... Args>
-  class null_sink: public sink<Args...> {
+  class null_sink: public functor<void,Args...> {
      public:
         void operator()(Args...args) {
            return;
@@ -14,11 +14,11 @@ namespace polafunctor {
   };
   
   template <typename ... Args>
-  class tee_sink: public sink<Args...> {
-       sink<Args...> &mFirst;
-       sink<Args...> &mSecond;
+  class tee_sink: public functor<void,Args...> {
+       functor<void,Args...> &mFirst;
+       functor<void,Args...> &mSecond;
     public:
-       tee_sink(sink<Args...> &first,sink<Args...> &second):mFirst(first),mSecond(second){}
+       tee_sink(functor<void,Args...> &first,functor<void,Args...> &second):mFirst(first),mSecond(second){}
        void operator()(Args...args) {
           mFirst(args...);
           mSecond(args...);
@@ -43,7 +43,7 @@ namespace polafunctor {
   };
 */
   template <typename ... Args>
-  class throwing_sink: public sink<Args...> {
+  class throwing_sink: public functor<void,Args...> {
         std::string mFailMsg;
      public: 
         throwing_sink(std::string failmsg): mFailMsg(failmsg){}

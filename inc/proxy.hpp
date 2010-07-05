@@ -6,9 +6,9 @@ namespace polafunctor {
   template <typename R, typename ... Args>
   class filtered_rval: public functor<void,Args...> {
         functor<R,Args...> &mRaw;
-        filter<R> &mFilter;
+        functor<R,R> &mFilter;
      public:
-        filtered_rval(functor<R,Args...> &raw, filter<R> &rvalfilter): mRaw(raw), mFilter(rvalfilter) {}
+        filtered_rval(functor<R,Args...> &raw, functor<R,R> &rvalfilter): mRaw(raw), mFilter(rvalfilter) {}
         void operator()(Args...args) {
            return mFilter(mRaw(args...));
         }
@@ -18,20 +18,20 @@ namespace polafunctor {
   template <typename R, typename F, typename ...Args>
   class filter_first_argument: public functor<R,F,Args...> {
      functor<R,F,Args...> &mRaw;
-     filter<F> &mFilter;
+     functor<F,F> &mFilter;
    public:
-     filter_first_argument(functor<R,F,Args...> &raw,filter<F> &filter):mRaw(raw),mFilter(filter){}
+     filter_first_argument(functor<R,F,Args...> &raw,functor<F,F> &filter):mRaw(raw),mFilter(filter){}
      R operator()(F first,Args... args) {
         return mRaw(mFilter(first),args...);
      }
   };
 
   template <typename F, typename ...Args>
-  class filter_first_argument<void,F,Args...>: public sink<F,Args...> {
-     sink<F,Args...> &mRaw;
-     filter<F> &mFilter;
+  class filter_first_argument<void,F,Args...>: public functor<void,F,Args...> {
+     functor<void,F,Args...> &mRaw;
+     functor<F,F> &mFilter;
    public:
-     filter_first_argument(sink<F,Args...> &raw,filter<F> &filter):mRaw(raw),mFilter(filter){}
+     filter_first_argument(functor<void,F,Args...> &raw,functor<F,F> &filter):mRaw(raw),mFilter(filter){}
      void operator()(F first,Args... args) {
         mRaw(mFilter(first),args...);
      }
@@ -41,9 +41,9 @@ namespace polafunctor {
   template <typename R, typename ... Args>
   class redirect_rval: public functor<R,Args...> {
       functor<R,Args...> &mRaw;
-      sink<R> &mRedirect;
+      functor<void,R> &mRedirect;
      public:
-      redirect_rval(functor<R,Args...> &raw, sink<R> &redirect): mRaw(raw),mRedirect(redirect) {}
+      redirect_rval(functor<R,Args...> &raw, functor<void,R> &redirect): mRaw(raw),mRedirect(redirect) {}
       R operator()(Args...args) {
          return mRedirect(mRaw(args...));
       }
@@ -53,9 +53,9 @@ namespace polafunctor {
   template <typename R, typename F, typename ... Args>
   class redirected_first_argument: public functor<R,F,Args...> {
       functor<R,Args...> &mRaw;
-      sink<F> &mSink;
+      functor<void,F> &mSink;
      public:
-      redirected_first_argument(functor<R,Args...> &raw,sink<F> &snk):mRaw(raw),mSink(snk){}
+      redirected_first_argument(functor<R,Args...> &raw,functor<void,F> &snk):mRaw(raw),mSink(snk){}
       R operator()(F first,Args...args) {
           mSink(first);
           return mRaw(args...);
@@ -63,11 +63,11 @@ namespace polafunctor {
   };
 
   template <typename F, typename ... Args>
-  class redirected_first_argument<void,F,Args...>: public sink<F,Args...> {
-      sink<Args...> &mRaw;
-      sink<F> &mSink;
+  class redirected_first_argument<void,F,Args...>: public functor<void,F,Args...> {
+      functor<void,Args...> &mRaw;
+      functor<void,F> &mSink;
      public:
-      redirected_first_argument(sink<Args...> &raw,sink<F> &snk):mRaw(raw),mSink(snk){}
+      redirected_first_argument(functor<void,Args...> &raw,functor<void,F> &snk):mRaw(raw),mSink(snk){}
       void operator()(F first,Args...args) {
           mSink(first);
           return mRaw(args...);
@@ -78,20 +78,20 @@ namespace polafunctor {
   template <typename R, typename F, typename ... Args>
   class auto_first_argument: public functor<R,Args...> {
       functor<R,F,Args...> &mRaw;
-      source<F> &mSource;
+      functor<F> &mSource;
     public:
-      auto_first_argument(functor<R,F,Args...> &raw,source<F> &src): mRaw(raw),mSource(src){}
+      auto_first_argument(functor<R,F,Args...> &raw,functor<F> &src): mRaw(raw),mSource(src){}
       R operator()(Args...args) {
          return mRaw(mSource(),args...);
       }
   };
 
   template <typename F, typename ... Args>
-  class auto_first_argument<void,F,Args...>: public sink<Args...> {
-      sink<F,Args...> &mRaw;
-      source<F> &mSource;
+  class auto_first_argument<void,F,Args...>: public functor<void,Args...> {
+      functor<void,F,Args...> &mRaw;
+      functor<F> &mSource;
     public:
-      auto_first_argument(sink<F,Args...> &raw,source<F> &src): mRaw(raw),mSource(src){}
+      auto_first_argument(functor<void,F,Args...> &raw,functor<F> &src): mRaw(raw),mSource(src){}
       void operator()(Args...args) {
          return mRaw(mSource(),args...);
       }
@@ -100,9 +100,9 @@ namespace polafunctor {
   template <typename R,typename ... Args>
   class tee_rval: public functor<R,Args...> {
        functor<R,Args...> &mRaw;
-       sink<R> &mTarget;
+       functor<void,R> &mTarget;
      public:
-       tee_rval(functor<R,Args...> &raw,sink<R> &target):mRaw(raw),mTarget(target){}
+       tee_rval(functor<R,Args...> &raw,functor<void,R> &target):mRaw(raw),mTarget(target){}
         R operator()(Args...args) {
            R rval=mRaw(args...);
            mTarget(rval);
@@ -113,9 +113,9 @@ namespace polafunctor {
   template <typename R,typename ... Args>
   class tee_arguments: public functor<R,Args...> {
        functor<R,Args...> &mRaw;
-       sink<Args...> &mTarget;
+       functor<void,Args...> &mTarget;
      public:
-       tee_arguments(functor<R,Args...> &raw,sink<Args...> &target): mRaw(raw),mTarget(target){}
+       tee_arguments(functor<R,Args...> &raw,functor<void,Args...> &target): mRaw(raw),mTarget(target){}
        R operator()(Args...args) {
           mTarget(args...);
           return mRaw(args...);
@@ -123,11 +123,11 @@ namespace polafunctor {
   };
 
   template <typename ... Args>
-  class tee_arguments<void,Args...>: public sink<Args...> {
-       sink<Args...> &mRaw;
-       sink<Args...> &mTarget;
+  class tee_arguments<void,Args...>: public functor<void,Args...> {
+       functor<void,Args...> &mRaw;
+       functor<void,Args...> &mTarget;
      public:
-       tee_arguments(sink<Args...> &raw,sink<Args...> &target): mRaw(raw),mTarget(target){}
+       tee_arguments(functor<void,Args...> &raw,functor<void,Args...> &target): mRaw(raw),mTarget(target){}
        void operator()(Args...args) {
           mTarget(args...);
           mRaw(args...);
@@ -138,9 +138,9 @@ namespace polafunctor {
   class conditional: public functor<R,Args...> {
         functor<R,Args...> &mOnTrue;
         functor<R,Args...> &mOnFalse;
-        condition &mCondition;    
+        functor<bool> &mCondition;    
      public:
-        conditional(functor<R,Args...> &ontrue,functor<R,Args...> &onfalse,condition &thecondition):mOnTrue(ontrue),mOnFalse(onfalse),mCondition(thecondition){}
+        conditional(functor<R,Args...> &ontrue,functor<R,Args...> &onfalse,functor<bool> &thecondition):mOnTrue(ontrue),mOnFalse(onfalse),mCondition(thecondition){}
         R operator()(Args...args) {
            if (mCondition) {
               return mOnTrue(args...);
@@ -151,12 +151,12 @@ namespace polafunctor {
   };
 
   template <typename ... Args>
-  class conditional<void,Args...>: public sink<Args...> {
-        sink<Args...> &mOnTrue;
-        sink<Args...> &mOnFalse;
-        condition &mCondition;
+  class conditional<void,Args...>: public functor<void,Args...> {
+        functor<void,Args...> &mOnTrue;
+        functor<void,Args...> &mOnFalse;
+        functor<bool> &mCondition;
      public:
-        conditional(sink<Args...> &ontrue,sink<Args...> &onfalse,condition &thecondition):mOnTrue(ontrue),mOnFalse(onfalse),mCondition(thecondition){}
+        conditional(functor<void,Args...> &ontrue,functor<void,Args...> &onfalse,functor<bool> &thecondition):mOnTrue(ontrue),mOnFalse(onfalse),mCondition(thecondition){}
         void operator()(Args...args) {
            if (mCondition) {
               mOnTrue(args...);
