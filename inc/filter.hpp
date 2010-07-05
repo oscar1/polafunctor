@@ -3,7 +3,7 @@
 #include "functor.hpp"
 namespace polafunctor {
   //A constfilter is the filter variant of the constfunctor, it ignores the input and produces the same output every invocation.
-  template <class T>
+  template <typename T>
   class source_filter: public functor<T,T> {
         functor<T> &mSource;
      public:
@@ -14,7 +14,7 @@ namespace polafunctor {
   };
 
   //The maskfilter applies an '&' operation on the input and a mask.
-  template <class T>
+  template <typename T>
   class mask_filter: public functor<T,T> {
         T       mMask;
      public:
@@ -25,14 +25,14 @@ namespace polafunctor {
   };
 
   //The nullfilter simply returns its input without any filtering.
-  template <class T>
+  template <typename T>
   class null_filter: public functor<T,T> {
      public:
         T operator()(T arg){return arg;}
   };
 
   //The rangefilter makes sure that the value fals within a given range and changes the vallue to min or max if it falls outside of the range.
-  template <class T>
+  template <typename T>
   class range_filter: public functor<T,T> {
         T       mMin;
         T       mMax;
@@ -45,7 +45,7 @@ namespace polafunctor {
         }
   };
 
-  template <class T>
+  template <typename T>
   class tee_filter: public functor<T,T> {
        functor<void,T> &mSink;
      public:
@@ -55,6 +55,5 @@ namespace polafunctor {
            return arg;
        }
   };
-
 }
 #endif

@@ -16,7 +16,7 @@ namespace polafunctor {
   };
 
   //A const_source will return the same preset vallue each invocation.
-  template <class T>
+  template <typename T>
   class const_source: public functor<T> {
        T mConst;
      public:
