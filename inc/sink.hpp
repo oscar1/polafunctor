@@ -25,13 +25,13 @@ namespace polafunctor {
        }
   };
 
-/*  template <typename ... Args>
-  class validating_sink: public sink<Args...> {
-        sink<Args...> &mOnValid;
-        sink<Args...> &mOnInValid;
-        validator<Args...> &mValidator;
+  template <typename ... Args>
+  class validating_sink: public functor<void,Args...> {
+        functor<void,Args...> &mOnValid;
+        functor<void,Args...> &mOnInValid;
+        functor<bool,Args...> &mValidator;
      public:
-        validating_sink(sink<Args...> &onvalid,sink<Args...> &oninvalid,validator<Args...> &svalidator):mOnValid(onvalid),mOnInValid(oninvalid),mValidator(svalidator){}
+        validating_sink(functor<void,Args...> &onvalid,functor<void,Args...> &oninvalid,functor<bool,Args...> &svalidator):mOnValid(onvalid),mOnInValid(oninvalid),mValidator(svalidator){}
         void operator()(Args...args) {
             if (mValidator(args...)) {
                mOnValid(args...);
@@ -41,7 +41,7 @@ namespace polafunctor {
         }
 
   };
-*/
+
   template <typename ... Args>
   class throwing_sink: public functor<void,Args...> {
         std::string mFailMsg;
