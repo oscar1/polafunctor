@@ -16,22 +16,22 @@ namespace polafunctor {
   
   //A filter_first_argument places a filter on the first argument of a functor.
   template <typename R, typename F, typename ...Args>
-  class filter_first_argument: public functor<R,F,Args...> {
+  class filtered_first_argument: public functor<R,F,Args...> {
      functor<R,F,Args...> &mRaw;
      functor<F,F> &mFilter;
    public:
-     filter_first_argument(functor<R,F,Args...> &raw,functor<F,F> &filter):mRaw(raw),mFilter(filter){}
+     filtered_first_argument(functor<R,F,Args...> &raw,functor<F,F> &filter):mRaw(raw),mFilter(filter){}
      R operator()(F first,Args... args) {
         return mRaw(mFilter(first),args...);
      }
   };
 
   template <typename F, typename ...Args>
-  class filter_first_argument<void,F,Args...>: public functor<void,F,Args...> {
+  class filtered_first_argument<void,F,Args...>: public functor<void,F,Args...> {
      functor<void,F,Args...> &mRaw;
      functor<F,F> &mFilter;
    public:
-     filter_first_argument(functor<void,F,Args...> &raw,functor<F,F> &filter):mRaw(raw),mFilter(filter){}
+     filtered_first_argument(functor<void,F,Args...> &raw,functor<F,F> &filter):mRaw(raw),mFilter(filter){}
      void operator()(F first,Args... args) {
         mRaw(mFilter(first),args...);
      }
@@ -39,11 +39,11 @@ namespace polafunctor {
 
   //A redirect_rval redirects the return vallue to a redirection sink without disclosing the result to the caller.
   template <typename R, typename ... Args>
-  class redirect_rval: public functor<R,Args...> {
+  class redirected_rval: public functor<R,Args...> {
       functor<R,Args...> &mRaw;
       functor<void,R> &mRedirect;
      public:
-      redirect_rval(functor<R,Args...> &raw, functor<void,R> &redirect): mRaw(raw),mRedirect(redirect) {}
+      redirected_rval(functor<R,Args...> &raw, functor<void,R> &redirect): mRaw(raw),mRedirect(redirect) {}
       R operator()(Args...args) {
          return mRedirect(mRaw(args...));
       }
@@ -62,16 +62,29 @@ namespace polafunctor {
       }
   };
 
-  template <typename F, typename ... Args>
-  class redirected_first_argument<void,F,Args...>: public functor<void,F,Args...> {
-      functor<void,Args...> &mRaw;
-      functor<void,F> &mSink;
+  template <typename R, typename F, typename ... Args>
+  class redirected_remaining_arguments: public functor<R,F,Args...> {
+       functor<R,F> &mRaw;
+       functor<void,Args...> &mSink;
      public:
-      redirected_first_argument(functor<void,Args...> &raw,functor<void,F> &snk):mRaw(raw),mSink(snk){}
-      void operator()(F first,Args...args) {
-          mSink(first);
-          return mRaw(args...);
-      }
+        redirected_remaining_arguments(functor<R,F> &raw,functor<void,Args...> &snk):mRaw(raw),mSink(snk){}
+	R operator()(F first,Args...args) {
+           mSink(args...);
+	   return mRaw(first);
+	}
+  };
+
+  template <typename R, typename ... Args>
+  class auto_rval: public functor<R,Args...> {
+       functor<void,Args...> &mRaw;
+       functor<R> &mSource;
+     public:
+       auto_rval(functor<void,Args...> &raw,functor<R> &src):mRaw(raw),mSource(src){}
+       R operator()(Args...args) {
+          mRaw(args...);
+	  return mSource();
+       }
+
   };
 
   //An auto_first_argument is a proxy that exposes all but the first functor argument. The first argument on proxying is set by its source.
@@ -134,6 +147,50 @@ namespace polafunctor {
        }
   };
 
+  template <typename R, typename F, typename ... Args>
+  class derived_first_argument: public functor<R,Args...> {
+        functor<R,F,Args...> &mRaw;
+	functor<F,Args...> &mDeriver;
+      public:
+	derived_first_argument(functor<R,F,Args...> &raw,functor<F,Args...> &deriver):mRaw(raw),mDeriver(deriver){}
+	R operator()(Args...args) {
+           return mRaw(mDeriver(args...),args...);
+	}
+  }; 
+
+  template <typename R,typename ... Args>
+  class discarded_rval: public functor<void,Args...> {
+        functor<R,Args...> &mRaw;
+      public:
+	discarded_rval(functor<R,Args...> &raw):mRaw(raw) {}
+	void operator()(Args...args) {
+            mRaw(args...);
+	}
+  };
+  
+
+  template <typename R, typename F, typename ... Args>
+  class discarded_first_argument: public functor<R,F,Args...> {
+       functor<R,Args...> &mRaw;
+     public:
+       discarded_first_argument(functor<R,Args...> &raw):mRaw(raw){}
+       R operator()(F,Args...args) {
+            return mRaw(args...);   
+       }  
+  };
+
+   
+
+  template <typename R, typename F, typename ... Args>
+  class discarded_remaining_arguments: public functor<R,F,Args...> {
+	functor<R,F> &mRaw;
+     public:
+        discarded_remaining_arguments(functor<R,F> &raw):mRaw(raw){}
+        R operator()(F first,Args...args) {
+            return mRaw(first);
+        }
+  };
+
   template <typename R,typename ... Args>
   class conditional: public functor<R,Args...> {
         functor<R,Args...> &mOnTrue;
@@ -146,24 +203,6 @@ namespace polafunctor {
               return mOnTrue(args...);
            } else {
               return mOnFalse(args...);
-           }
-        }
-  };
-
-  template <typename ... Args>
-  class conditional<void,Args...>: public functor<void,Args...> {
-        functor<void,Args...> &mOnTrue;
-        functor<void,Args...> &mOnFalse;
-        functor<bool> &mCondition;
-     public:
-        conditional(functor<void,Args...> &ontrue,functor<void,Args...> &onfalse,functor<bool> &thecondition):mOnTrue(ontrue),mOnFalse(onfalse),mCondition(thecondition){}
-        void operator()(Args...args) {
-           if (mCondition) {
-              mOnTrue(args...);
-              return;
-           } else {
-              mOnFalse(args...);
-              return;
            }
         }
   };

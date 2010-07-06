@@ -42,12 +42,12 @@ int main(int argc,char **argv) {
   logger rawlogger(std::cerr,2);
   rawlogger("sapperdeflap",44,"repelsteeltje");
   namespacefilter nsfilter("foo");
-  polafunctor::filter_first_argument<int, std::string, int, std::string> nslogger(rawlogger,nsfilter);
+  polafunctor::filtered_first_argument<int, std::string, int, std::string> nslogger(rawlogger,nsfilter);
   nslogger("sapperdeflap",44,"repelsteeltje");
   polafunctor::argumentstore<std::string> firstargument("uninitialized");
   polafunctor::auto_first_argument<int, std::string, int, std::string> logger1(nslogger,firstargument);
   polafunctor::range_filter<int> twotofour(2,4);
-  polafunctor::filter_first_argument<int,int, std::string> logger2(logger1,twotofour);
+  polafunctor::filtered_first_argument<int,int, std::string> logger2(logger1,twotofour);
   polafunctor::redirected_first_argument<int, std::string, int, std::string> filteredlogger(logger2,firstargument);
   filteredlogger("sapperdeflap",44,"repelsteeltje");       
   return 0;
