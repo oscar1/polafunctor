@@ -32,5 +32,17 @@ namespace polafunctor {
 	 mQueue.enqueue(eprox);
        }
   };
+
+  template <typename ... Args>
+  class asynchonous_proxy: public functor<void,Args...> {
+       functor<void,Args...> &mRaw;
+       parallel_event_loop &mEloop;
+     public:
+       asynchonous_proxy(functor<void,Args...> &raw,parallel_event_loop eloop): mRaw(raw),mEloop(eloop){}
+       void operator()(Args...args) {
+          asynchonous_invocation<Args...> invokelater(mRaw,args...);
+          eloop(invokelater); //This will not work for now, probably should use pointers or value objects, need to fix this.
+       }   
+  }
 }
 #endif
