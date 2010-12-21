@@ -7,7 +7,9 @@
 		<xsl:value-of select="@demangled"/><xsl:value-of select="'::'"/>
 	</xsl:for-each>
 	<xsl:for-each select="/GCC_XML/Namespace[@id=$mycontext]">
-		<xsl:value-of select="@demangled"/><xsl:value-of select="'::'"/>
+		<xsl:if test="@demangled !='::'">
+		    <xsl:value-of select="@demangled"/><xsl:value-of select="'::'"/>
+		</xsl:if>
 	</xsl:for-each>
     </xsl:template>
 
@@ -27,12 +29,18 @@
           </xsl:for-each>
 	  <xsl:for-each select="/GCC_XML/Enumeration[@id=$mytype]">
              <xsl:call-template name="typecontext">
-		     <xsl:with-param name="mycontext"><xsl:value-of select="@context"/></xsl:with-param>
+		<xsl:with-param name="mycontext"><xsl:value-of select="@context"/></xsl:with-param>
 	     </xsl:call-template>
 	     <xsl:value-of select="@name"/>
 	  </xsl:for-each>
 	  <xsl:for-each select="/GCC_XML/CvQualifiedType[@id=$mytype]">
-	     <xsl:value-of select="'CvQualifiedType'"/>
+	     <xsl:variable name="reftype" select="@type"/>
+             <xsl:call-template name="ptype">
+		     <xsl:with-param name="mytype"><xsl:value-of select="$reftype"/></xsl:with-param>
+	     </xsl:call-template>
+             <xsl:if test="@const = '1'"><xsl:value-of select="' const'"/></xsl:if>
+	     <xsl:if test="@volatile = '1'"><xsl:value-of select="' volatile'"/></xsl:if>
+	     <xsl:if test="@restrict = '1'"><xsl:value-of select="' restrict'"/></xsl:if>
 	  </xsl:for-each>
 	  <xsl:for-each select="/GCC_XML/ReferenceType[@id=$mytype]">
             <xsl:variable name="reftype" select="@type"/>
