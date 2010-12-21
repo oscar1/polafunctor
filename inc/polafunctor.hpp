@@ -4,3 +4,5 @@
 #include "filter.hpp"
 #include "sink.hpp"  
 #include "source.hpp"
+#include "event.hpp"
+#include "actor.hpp"

@@ -9,27 +9,19 @@
 namespace polafunctor {
   
   class parallel_event_loop: public functor<void, functor<void> & > {
-     class EventProxy: public functor<void> {
-	   functor<void> &mRaw;
-        public:
-            EventProxy(functor<void> &raw):mRaw(raw){}
-	    void operator()() {
-               mRaw();
-	    }
-     };
      void eventLoop() {
-        EventProxy eproxy;
-	mQueue.dequeue(&eproxy);
-	eproxy();
+        functor<void> *event=0;;
+	mQueue.dequeue(&event);
+	(*event)();
+	delete event; //FIXME, we should be able to do this without stack usage.
      }
-     boost::lockfree::queue mQueue;
+     boost::lockfree::queue<functor<void> *> mQueue;
     public:
        paralel_event_loop() {
          boost::thread eventthread(eventloop);
        }
-       void operator()(functor<void> &funct) {
-         EventProxy eprox(funct);
-	 mQueue.enqueue(eprox);
+       void operator()(functor<void> *funct) {
+	 mQueue.enqueue(funct);
        }
   };
 
@@ -40,8 +32,8 @@ namespace polafunctor {
      public:
        asynchonous_proxy(functor<void,Args...> &raw,parallel_event_loop eloop): mRaw(raw),mEloop(eloop){}
        void operator()(Args...args) {
-          asynchonous_invocation<Args...> invokelater(mRaw,args...);
-          eloop(invokelater); //This will not work for now, probably should use pointers or value objects, need to fix this.
+          asynchonous_invocation<Args...> *invokelater=new asynchonous_invocation<Args...>(mRaw,args...); //FIXME, we should be able to do this without stack usage.
+          eloop(invokelater);
        }   
   }
 }

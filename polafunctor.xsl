@@ -1,30 +1,52 @@
 <?xml version="1.0"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" id="polafunctor" version="1.0">
 
-  <xsl:template name="ptype">
-	  <xsl:variable name="type_id" select="@type"/>
-	  <xsl:for-each select="../Typedef[@id=$type_id]">
+    <xsl:template name="typecontext">
+        <xsl:param name="mycontext" />
+	<xsl:for-each select="/GCC_XML/Class[@id=$mycontext]">
+		<xsl:value-of select="@demangled"/><xsl:value-of select="'::'"/>
+	</xsl:for-each>
+	<xsl:for-each select="/GCC_XML/Namespace[@id=$mycontext]">
+		<xsl:value-of select="@demangled"/><xsl:value-of select="'::'"/>
+	</xsl:for-each>
+    </xsl:template>
+
+    <xsl:template name="ptype">
+	  <xsl:param name="mytype" />
+	  <xsl:for-each select="/GCC_XML/Typedef[@id=$mytype]">
+	    <xsl:call-template name="typecontext">
+              <xsl:with-param name="mycontext"><xsl:value-of select="@context"/></xsl:with-param>
+            </xsl:call-template>
             <xsl:value-of select="@name"/>
           </xsl:for-each>
-          <xsl:for-each select="../Class[@id=$type_id]">
+	  <xsl:for-each select="/GCC_XML/Class[@id=$mytype]">
+            <xsl:value-of select="@demangled"/>
+          </xsl:for-each>
+	  <xsl:for-each select="/GCC_XML/FundamentalType[@id=$mytype]">
             <xsl:value-of select="@name"/>
           </xsl:for-each>
-          <xsl:for-each select="../FundamentalType[@id=$type_id]">
-            <xsl:value-of select="@name"/>
-          </xsl:for-each>
-	  <xsl:for-each select="../CvQualifiedType[@id=$type_id]">
+	  <xsl:for-each select="/GCC_XML/Enumeration[@id=$mytype]">
+             <xsl:call-template name="typecontext">
+		     <xsl:with-param name="mycontext"><xsl:value-of select="@context"/></xsl:with-param>
+	     </xsl:call-template>
+	     <xsl:value-of select="@name"/>
+	  </xsl:for-each>
+	  <xsl:for-each select="/GCC_XML/CvQualifiedType[@id=$mytype]">
 	     <xsl:value-of select="'CvQualifiedType'"/>
 	  </xsl:for-each>
-	  <xsl:for-each select="../ReferenceType[@id=$type_id]">
-	    <xsl:call-template name="ptype"/>
+	  <xsl:for-each select="/GCC_XML/ReferenceType[@id=$mytype]">
+            <xsl:variable name="reftype" select="@type"/>
+	    <xsl:call-template name="ptype">
+		    <xsl:with-param name="mytype"><xsl:value-of select="$reftype"/></xsl:with-param>
+	    </xsl:call-template>
             <xsl:value-of select="' &amp;'"/>
           </xsl:for-each>
-          <xsl:for-each select="../PointerType[@id=$type_id]">
-             <xsl:call-template name="ptype"/>
+	  <xsl:for-each select="/GCC_XML/PointerType[@id=$mytype]">
+	     <xsl:variable name="reftype" select="@type"/>
+	     <xsl:call-template name="ptype">
+		     <xsl:with-param name="mytype"><xsl:value-of select="$reftype"/></xsl:with-param>
+	     </xsl:call-template>
              <xsl:value-of select="' *'"/>
-          </xsl:for-each>
-          <xsl:for-each select="../Enumeration[@id=$type_id]">
-             <xsl:value-of select="@name"/>
           </xsl:for-each>
   </xsl:template>
 
@@ -37,30 +59,10 @@
              <xsl:value-of select="@const"/>
          </xsl:attribute>
 	 <returntype>
-            <xsl:variable name="type_id" select="@returns"/>
-	    <xsl:for-each select="../Typedef[@id=$type_id]">
-               <xsl:value-of select="@name"/>
-	    </xsl:for-each>
-	    <xsl:for-each select="../Class[@id=$type_id]">
-               <xsl:value-of select="@name"/>
-	    </xsl:for-each>
-	    <xsl:for-each select="../FundamentalType[@id=$type_id]">
-               <xsl:value-of select="@name"/>
-            </xsl:for-each>
-            <xsl:for-each select="../CvQualifiedType[@id=$type_id]">
-		    <xsl:value-of select="'CvQualifiedType'"/>
-	    </xsl:for-each>
-	    <xsl:for-each select="../ReferenceType[@id=$type_id]">
-		    <xsl:call-template name="ptype"/>
-                    <xsl:value-of select="' &amp;'"/>
-	    </xsl:for-each>
-	    <xsl:for-each select="../PointerType[@id=$type_id]">
-                    <xsl:call-template name="ptype"/>
-                    <xsl:value-of select="' *'"/>
-	    </xsl:for-each>
-	    <xsl:for-each select="../Enumeration[@id=$type_id]">
-		    <xsl:value-of select="@name"/>
-	    </xsl:for-each>
+	    <xsl:variable name="typeid" select="@returns"/>
+            <xsl:call-template name="ptype">
+		    <xsl:with-param name="mytype"><xsl:value-of select="$typeid"/></xsl:with-param>
+            </xsl:call-template>
 	 </returntype>
       </method>
   </xsl:template>
