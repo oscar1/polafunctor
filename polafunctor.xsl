@@ -71,7 +71,15 @@
             <xsl:call-template name="ptype">
 		    <xsl:with-param name="mytype"><xsl:value-of select="$typeid"/></xsl:with-param>
             </xsl:call-template>
-	 </returntype>
+         </returntype>
+	 <xsl:for-each select="Argument">
+            <argument>
+               <xsl:variable name="typeid" select="@type"/>
+	       <xsl:call-template name="ptype">
+                   <xsl:with-param name="mytype"><xsl:value-of select="$typeid"/></xsl:with-param>
+	       </xsl:call-template>
+	    </argument>
+	 </xsl:for-each>
       </method>
   </xsl:template>
 
