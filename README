@@ -2,4 +2,4 @@ The PolaFunctor library is a simple template library for using functors as basic
 
 Warning: This library makes use of variadic templates. Variadic templates are a powerfull new feature of c++0x. This makes however that this library can only work if you enable the c++0x in your compiler.
 
- 
+Wiki: http://polafunctor.polacanthus.net/wiki/Main_Page 
