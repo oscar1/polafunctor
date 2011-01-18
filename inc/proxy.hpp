@@ -13,18 +13,20 @@ namespace polafunctor {
            return mFilter(mRaw(args...));
         }
   };
+
   
   //A filter_first_argument places a filter on the first argument of a functor.
   template <typename R, typename F, typename ...Args>
   class filtered_first_argument: public functor<R,F,Args...> {
-     functor<R,F,Args...> &mRaw;
-     functor<F,F> &mFilter;
+     functor<R,F,Args...> & mRaw;
+     functor<F,F> & mFilter;
    public:
      filtered_first_argument(functor<R,F,Args...> &raw,functor<F,F> &filter):mRaw(raw),mFilter(filter){}
      R operator()(F first,Args... args) {
         return mRaw(mFilter(first),args...);
      }
   };
+
 
   template <typename F, typename ...Args>
   class filtered_first_argument<void,F,Args...>: public functor<void,F,Args...> {

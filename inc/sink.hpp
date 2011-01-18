@@ -8,7 +8,7 @@ namespace polafunctor {
   template <typename ... Args>
   class null_sink: public functor<void,Args...> {
      public:
-        void operator()(Args...args) {
+        void operator()(Args...args) const {
            return;
         };
   };
@@ -44,7 +44,7 @@ namespace polafunctor {
 
   template <typename ... Args>
   class throwing_sink: public functor<void,Args...> {
-        std::string mFailMsg;
+        std::string const mFailMsg;
      public: 
         throwing_sink(std::string failmsg): mFailMsg(failmsg){}
         void operator()(Args...args) {

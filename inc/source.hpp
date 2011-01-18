@@ -18,7 +18,7 @@ namespace polafunctor {
   //A const_source will return the same preset vallue each invocation.
   template <typename T>
   class const_source: public functor<T> {
-       T mConst;
+       T const mConst;
      public:
        const_source(T val):mConst(val){}
        T operator()() { return mConst;}

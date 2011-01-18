@@ -6,7 +6,7 @@
 namespace polafunctor {
   //A quota condition returns true on the first n invocations and false after the invocation quota has been excausted.
   class quota: public functor<bool> {
-      size_t mMax;
+      size_t const mMax;
       size_t mCount;
     public:
       quota(size_t maxinvoke):mMax(maxinvoke),mCount(0){}
@@ -28,9 +28,9 @@ namespace polafunctor {
   //A revokable will return true each invocation untill after its revoke method has been invoked.
   class revokable: public functor<bool> {
       class revokefunctor: public functor<void> {
-	   revokable *mRevokable;
+	   revokable * const mRevokable;
         public:
-	   revokefunctor(revokable *rev): mRevokable(rev){}
+	   revokefunctor(revokable * const rev): mRevokable(rev){}
 	   void operator()(){
               return mRevokable->revoke();
 	   }
