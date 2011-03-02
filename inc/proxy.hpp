@@ -1,6 +1,9 @@
 #ifndef _PROXY_HPP
 #define _PROXY_HPP
 #include "functor.hpp"
+
+
+// this file could use some more comments
 namespace polafunctor {
 
   template <typename R, typename ... Args>
